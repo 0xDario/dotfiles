@@ -115,10 +115,15 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+. "$HOME/.cargo/env"
 
-# dotnet environment variables
-export DOTNET_ROOT=$HOME/.dotnet
-export PATH=$PATH:$HOME/.dotnet:$HOME/.dotnet/tools
+# sccache
+# Ensure the CARGO_BUILD_RUSTC_WRAPPER environment variable is set to point to sccache.
+# This tells Cargo to use sccache as a compiler wrapper.
+export CARGO_BUILD_RUSTC_WRAPPER=sccache
 
-alias u='sudo brightnessctl set +10%'
-alias d='sudo brightnessctl set 10%-'
+# Created by `pipx` on 2023-10-22 20:55:30
+export PATH="$PATH:/home/lupin/.local/bin"
+
+# oh my posh
+eval "$(oh-my-posh init bash --config ~/.config/ohmyposh/themes/illusi0n.omp.json)"
