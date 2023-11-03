@@ -126,4 +126,5 @@ export CARGO_BUILD_RUSTC_WRAPPER=sccache
 export PATH="$PATH:/home/lupin/.local/bin"
 
 # oh my posh
-eval "$(oh-my-posh init bash --config ~/.config/ohmyposh/themes/illusi0n.omp.json)"
+# commented out as it breaks the (venv) in the terminal, makes it confusing to see if python-venv is active
+#eval "$(oh-my-posh init bash --config ~/.config/ohmyposh/themes/half-life.omp.json)"
