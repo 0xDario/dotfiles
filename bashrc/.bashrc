@@ -123,7 +123,7 @@ fi
 export CARGO_BUILD_RUSTC_WRAPPER=sccache
 
 # Created by `pipx` on 2023-10-22 20:55:30
-export PATH="$PATH:/home/lupin/.local/bin"
+export PATH="$PATH:$HOME/.local/bin"
 
 # oh my posh
 # commented out as it breaks the (venv) in the terminal, makes it confusing to see if python-venv is active

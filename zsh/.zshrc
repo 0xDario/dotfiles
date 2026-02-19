@@ -1,79 +1,93 @@
 ############################################################
 # 0. Early exit for non-interactive shells
-# (Prevents PATH hacks from breaking scripts)
 ############################################################
 [[ -o interactive ]] || return
 typeset -U path PATH
 
 
 ############################################################
-# 1. Homebrew environment
+# 1. Homebrew (platform-aware)
 ############################################################
-export HOMEBREW_PREFIX="/opt/homebrew"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # Apple Silicon: /opt/homebrew, Intel: /usr/local
+  if [[ -d "/opt/homebrew" ]]; then
+    export HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    export HOMEBREW_PREFIX="/usr/local"
+  fi
+elif [[ -d "/home/linuxbrew/.linuxbrew" ]]; then
+  export HOMEBREW_PREFIX="/home/linuxbrew/.linuxbrew"
+fi
 
-
-############################################################
-# 2. GNU coreutils (Linux-compatible tools)
-# Safe: interactive shells only, no system overwrite
-############################################################
-if [[ -d "$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin" ]]; then
-  export PATH="$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin:$PATH"
+if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
+  export PATH="$HOMEBREW_PREFIX/bin:$HOMEBREW_PREFIX/sbin:$PATH"
+  # GNU coreutils — Linux-compatible tools on macOS
+  if [[ -d "$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin" ]]; then
+    export PATH="$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin:$PATH"
+  fi
 fi
 
 
 ############################################################
-# 3. Shell history (fast, shared, predictable)
+# 2. Rust / Cargo
+############################################################
+[[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
+
+
+############################################################
+# 3. Shell history
 ############################################################
 HISTFILE=~/.zsh_history
 HISTSIZE=100000
 SAVEHIST=100000
 
-setopt APPEND_HISTORY          # don’t overwrite history
-setopt INC_APPEND_HISTORY      # write history immediately
-setopt SHARE_HISTORY           # share between tabs
-setopt HIST_IGNORE_ALL_DUPS    # no duplicate spam
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_REDUCE_BLANKS
-setopt HIST_IGNORE_SPACE       # commands starting with space aren’t saved
+setopt HIST_IGNORE_SPACE
 
 
 ############################################################
 # 4. Oh My Zsh
 ############################################################
 export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="robbyrussell"
+ZSH_THEME=""  # Starship handles the prompt
 
 plugins=(
   git
 )
 
-source "$ZSH/oh-my-zsh.sh"
+[[ -f "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
 
 
 ############################################################
-# 5. Completion enhancements
+# 5. Completion enhancements (Homebrew-installed plugins)
 ############################################################
-# zsh-autocomplete (brew-installed)
+if [[ -f "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+if [[ -f "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+  source "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi
 if [[ -f "$HOMEBREW_PREFIX/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]]; then
   source "$HOMEBREW_PREFIX/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
 fi
 
 
 ############################################################
-# 6. Better defaults (aliases)
+# 6. Starship prompt
 ############################################################
-# NOTE: Avoid aliasing core behavior in scripts
-# These are interactive quality-of-life only
-
-alias cat="bat"
-alias ll="eza -lao --git-repos --header --icons"
-alias ls="eza"
+if command -v starship &>/dev/null; then
+  eval "$(starship init zsh)"
+fi
 
 
 ############################################################
 # 7. zoxide (smart directory jumping)
 ############################################################
-eval "$(zoxide init zsh)"
-# Use `z` explicitly; do NOT alias cd (safer)
+if command -v zoxide &>/dev/null; then
+  eval "$(zoxide init zsh)"
+fi
 
 
 ############################################################
@@ -83,32 +97,36 @@ export PATH="$HOME/.local/bin:$PATH"
 
 
 ############################################################
-# 9. pnpm (single source of truth)
+# 9. pnpm (platform-aware)
 ############################################################
-export PNPM_HOME="$HOME/Library/pnpm"
-if [[ ":$PATH:" != *":$PNPM_HOME:"* ]]; then
-  export PATH="$PNPM_HOME:$PATH"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  export PNPM_HOME="$HOME/Library/pnpm"
+else
+  export PNPM_HOME="$HOME/.local/share/pnpm"
+fi
+[[ ":$PATH:" != *":$PNPM_HOME:"* ]] && export PATH="$PNPM_HOME:$PATH"
+
+
+############################################################
+# 10. Platform-specific extras
+############################################################
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # JetBrains Toolbox scripts
+  export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
+  # opencode
+  export PATH="$HOME/.opencode/bin:$PATH"
 fi
 
 
 ############################################################
-# 10. Quality-of-life tweaks
+# 11. Aliases
 ############################################################
-# Faster globbing
+[[ -f "$HOME/.zsh_aliases" ]] && source "$HOME/.zsh_aliases"
+
+
+############################################################
+# 12. Quality-of-life tweaks
+############################################################
 setopt EXTENDED_GLOB
-
-# Better Ctrl+D behavior
 setopt IGNORE_EOF
-
-# Make tab completion case-insensitive
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
-
-
-############################################################
-# 11. Debug helpers (optional)
-############################################################
-# See where commands resolve from
-alias whichall='type -a'
-
-# Reload config
-alias reload='source ~/.zshrc'
